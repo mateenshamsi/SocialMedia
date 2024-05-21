@@ -9,10 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.1.0",
+    "@clerk/clerk-sdk-node": "^5.0.7",
+    "@clerk/nextjs": "^5.0.12",
+    "@clerk/themes": "^2.1.6",
+    "@uploadthing/react": "^6.5.4",
+    "clerk": "^0.8.3",
+    "mongoose": "^8.4.0",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
-    "react-icons": "^5.2.1"
+    "react-icons": "^5.2.1",
+    "svix": "^1.24.0",
+    "swr": "^2.2.5",
+    "tailwindcss-animate": "^1.0.7",
+    "uploadthing": "^6.10.4"
   },
   "devDependencies": {
     "@types/node": "^20",
