@@ -1,6 +1,7 @@
 import {ClerkProvider, UserButton} from '@clerk/nextjs'
 import {Inter}  from 'next/font/google'
 import '../globals.css'
+import { dark } from "@clerk/themes";
 
 export const metadata = {
     title: 'Threads',
@@ -14,12 +15,15 @@ const inter = Inter({
   }:{children:React.ReactNode
   }){ 
     return (
-    <ClerkProvider > 
+    <ClerkProvider   appearance={{
+      baseTheme: dark,
+    }}> 
         <html lang="en"> 
             <body className={`${inter.className}  `} > 
                 {children}
-                <UserButton/>
+             
             </body>
+            
         </html>
     </ClerkProvider>) 
   }
