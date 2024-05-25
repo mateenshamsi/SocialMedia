@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { formatDateString } from "@/lib/utils";
 // import DeleteThread from "../forms/DeleteThread";
 
 interface Props {
@@ -81,7 +80,7 @@ function ThreadCard({
                 <Link href={`/thread/${id}`}>
                   <Image
                     src='/assets/reply.svg'
-                    alt='heart'
+                    alt='Reply'
                     width={24}
                     height={24}
                     className='cursor-pointer object-contain'
@@ -144,7 +143,7 @@ function ThreadCard({
         </div>
       )}
 
-      {!isComment && community && (
+      {/* {!isComment && community && (
         <Link
           href={`/communities/${community.id}`}
           className='mt-5 flex items-center'
@@ -162,7 +161,7 @@ function ThreadCard({
             className='ml-1 rounded-full object-cover'
           />
         </Link>
-      )}
+      )} */}
     </article>
   );
 }
