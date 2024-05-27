@@ -17,12 +17,14 @@ import {
 import { Input } from "../ui/input";
 import Image from "next/image";
 import { ChangeEvent, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
+
 import { isBase64Image } from "../../lib/utils";
 import { useUploadThing } from "../../lib/uploadThing";
 import { updateUser } from "../../lib/actions/user.actions";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { Textarea } from "../ui/textarea";
+
 
 interface Props {
   user: {
