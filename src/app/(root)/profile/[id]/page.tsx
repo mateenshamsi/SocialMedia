@@ -3,7 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
 
 import { currentUser } from "@clerk/nextjs/server";
 import ThreadsTab from "../../../../../components/shared/ThreadsTab";
