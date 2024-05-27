@@ -19,7 +19,7 @@ const inter = Inter({
       baseTheme: dark,
     }}> 
         <html lang="en"> 
-            <body className={`${inter.className}  `} > 
+            <body className={`${inter.className} flex justify-center items-center mt-8  `} > 
                 {children}
              
             </body>
