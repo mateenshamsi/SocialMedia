@@ -1,4 +1,4 @@
-export async function Page() {
+async function Page() {
     return (
       <section className=""> 
           <h1 className="head-text mb-10">Community</h1>
