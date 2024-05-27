@@ -1,6 +1,4 @@
-
-
-export async function page() {
+export async function Page() {
     return (
       <section className=""> 
           <h1 className="head-text mb-10">Community</h1>
@@ -8,5 +6,5 @@ export async function page() {
   )
   }
   
-  export default page
+  export default Page
   
