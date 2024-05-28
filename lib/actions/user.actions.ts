@@ -13,11 +13,83 @@ interface Props{
     image:string , 
     path:string 
 }
+export async function followUser({
+  followerId,
+  followedId,
+  path,
+}: {
+  followerId: string;
+  followedId: string;
+  path: string;
+}) {
+  try {
+    connectDB();
+
+    const follower = await User.findOne({ id: followerId });
+
+    if (!follower) {
+      throw new Error("Follower not found");
+    }
+
+    const followed = await User.findOne({ id: followedId });
+
+    if (!followed) {
+      throw new Error("Followed not found");
+    }
+
+    const isAlreadyFollowed = await isUserFollowing(followerId, followedId);
+
+    if (isAlreadyFollowed) {
+      follower.following.pull({
+        user: followed._id,
+      });
+    } else {
+      follower.following.push({
+        user: followed._id,
+      });
+    }
+
+    await follower.save();
+
+    if (isAlreadyFollowed) {
+      followed.followers.pull({
+        user: follower._id,
+      });
+    } else {
+      followed.followers.push({
+        user: follower._id,
+      });
+    }
+
+    await followed.save();
+
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to follow user: ${error.message}`);
+  }
+}
+export async function isUserFollowing(followerId:string,followedId:string){ 
+  try{ 
+    connectDB() 
+    const followed = await User.findOne({id:followedId})
+    const isFollowing = await User.findOne({id:followerId,following:{$elemMatch:{user:followed._id}}}
+
+    )
+    return !!isFollowing 
+
+  }
+  catch(err:any)
+  { 
+    throw new Error("Failed to check if user followed")
+  }
+}
 export async function fetchUser(userId: string) {
   try {
     await connectDB(); // Ensure the database is connected
 
-    return await User.findOne({ id: userId }).populate({
+    return await User.findOne({ id: userId })
+    
+    .populate({
       path: 'threads',
       model: 'Thread' // Ensure 'Thread' is the correct model name
     });
@@ -64,22 +136,18 @@ export async function fetchUserPosts(userId: string) {
     const threads = await User.findOne({ id: userId }).populate({
       path: "threads",
       model: Thread,
-      // populate: [
-      //   // {
-      //   //   path: "community",
-      //   //   model: Community,
-      //   //   select: "name id image _id", // Select the "name" and "_id" fields from the "Community" model
-      //   // },
-      //   {
-      //     path: "children",
-      //     model: Thread,
-      //     populate: {
-      //       path: "author",
-      //       model: User,
-      //       select: "name image id", // Select the "name" and "_id" fields from the "User" model
-      //     },
-      //   },
-      // ],
+      populate: [
+       
+        {
+          path: "children",
+          model: Thread,
+          populate: {
+            path: "author",
+            model: User,
+            select: "name image id", 
+          },
+        },
+      ],
     });
     return threads;
   } catch (error) {
@@ -168,5 +236,33 @@ export async function getActivity(userId:string){
   catch(err:any)
   { 
     throw new Error(`Failed to fetch activity : ${err.message}`)
+  }
+}
+export async function getUserFollowersIds(userId:string,key:string)
+{ 
+  try{ 
+    connectDB()
+    const user = await User.findOne({id:userId})
+    const followersIds = user[key].map((follower:any)=>follower.user)
+    return followersIds
+  }
+  catch(err:any)
+  { 
+    throw new Error("Error fetching user followers") 
+  }
+}
+export async function fetchUsersByField(userId: string, field: string) {
+  try {
+    connectDB();
+
+    const user = await User.findOne({ id: userId });
+
+    const usersIds = user[field].map((user: any) => user.user);
+
+    const users = await User.find({ _id: { $in: usersIds } });
+
+    return users;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch users: ${error.message}`);
   }
 }

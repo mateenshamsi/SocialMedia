@@ -1,4 +1,14 @@
-import mongoose from 'mongoose' 
+import mongoose from 'mongoose'
+const followerSchema = new mongoose.Schema({ 
+    user:{ 
+        type:mongoose.Schema.Types.ObjectId, 
+        ref:'User' 
+    },
+    createdAt:{
+        type:Date , 
+        default:Date.now 
+    }
+}) 
 const userSchema = new mongoose.Schema({ 
     id:{
         type:String , 
@@ -21,27 +31,34 @@ const userSchema = new mongoose.Schema({
         type:String , 
         required:true 
     }, 
-    threads:{
+    threads:[{
         type:mongoose.Schema.Types.ObjectId, 
         ref:'Thread' 
 
-    }, 
+    }], 
     onboarded:{ 
         type:Boolean, 
         default:false 
     },
-    communities:{
-        type:mongoose.Schema.Types.ObjectId, 
-        ref:'Community' 
+   
+    followers :  [followerSchema] , 
+    following:[followerSchema]  
 
-    },  
-     
     
     
     
     
     
 })
+
+  
+userSchema.virtual("followersCount").get(function () {
+    return this.followers.length;
+  });
+  
+  userSchema.virtual("followingCount").get(function () {
+    return this.following.length;
+  });
 const User = mongoose.models.User||mongoose.model('User',userSchema) 
 
 export default User 

@@ -3,7 +3,7 @@
 import { Form } from "../ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserValidation } from "../../lib/validations/user";
+import { ThreadValidation } from "../../lib/validations/thread";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import {
@@ -14,40 +14,71 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-interface props{ 
-    userId:string 
-} 
+
 import { Textarea } from "../ui/textarea";
 import { usePathname, useRouter } from "next/navigation";
-import { ThreadValidation } from "../../lib/validations/thread";
 import { createThread } from "../../lib/actions/thread.actions";
+import { useOrganization } from "@clerk/clerk-react";
 
-function PostThread({userId}:props) {
-  const router = useRouter()
+interface Props {
+  userId: string;
+}
 
-  const path = usePathname()
-  const form = useForm({
-        resolver: zodResolver(ThreadValidation),
-        defaultValues: {
-            thread: "",
-            accountId: userId,
-        },
+function PostThread({ userId }: Props) {
+  const router = useRouter();
+  const { organization } = useOrganization();
+
+  const path = usePathname();
+  const form = useForm<z.infer<typeof ThreadValidation>>({
+    resolver: zodResolver(ThreadValidation),
+    defaultValues: {
+      thread: "",
+      accountId: userId,
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
+    // Check if organization is defined before accessing its properties
+    console.log("ORG ID",organization)
+    if (organization) {
+      await createThread({
+        text: values.thread,
+        author: userId,
+        communityId: organization.id,
+        path: path,
       });
-      const onSubmit=async(values:z.infer<typeof ThreadValidation>)=>{
-           await createThread({text:values.thread,author:userId,communityId:null,path:path})
-           router.push("/")
-      }
-    return (
-   
-        <Form {...form}>
-      <form className="flex flex-col justify-start gap-10" onSubmit={form.handleSubmit(onSubmit)}>
-      <FormField
+      router.push("/");
+    }
+    else
+    { 
+        await createThread({
+          text: values.thread,
+          author: userId,
+          communityId: null,
+          path: path,
+        });
+        router.push("/");
+      } 
+    }
+  
+
+  return (
+    <Form {...form}>
+      <form
+        className="flex flex-col justify-start gap-10"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <FormField
           control={form.control}
           name="thread"
           render={({ field }) => (
             <FormItem className="flex w-full flex-col gap-3">
               <FormLabel>Content</FormLabel>
-              <Textarea rows={5} className="account-form_input no-focus" {...field} />
+              <Textarea
+                rows={5}
+                className="account-form_input no-focus"
+                {...field}
+              />
               <FormMessage />
             </FormItem>
           )}
@@ -57,8 +88,7 @@ function PostThread({userId}:props) {
         </Button>
       </form>
     </Form>
-   
-     )
+  );
 }
 
-export default PostThread
+export default PostThread;

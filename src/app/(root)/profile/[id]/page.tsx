@@ -1,23 +1,28 @@
 import Image from "next/image";
-
 import { redirect } from "next/navigation";
 
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../components/ui/tabs";
 
-import { currentUser } from "@clerk/nextjs/server";
+
 import ThreadsTab from "../../../../../components/shared/ThreadsTab";
 import { profileTabs } from "../../../../../constants";
 import ProfileHeader from "../../../../../components/shared/ProfileHeader";
-import { fetchUser, fetchUserPosts } from "../../../../../lib/actions/user.actions";
+import { currentUser } from "@clerk/nextjs/server";
+import { fetchUser, fetchUsersByField, isUserFollowing } from "../../../../../lib/actions/user.actions";
+import UserCard from "../../../../../components/cards/UserCard";
+import {Tabs,TabsList,TabsContent,TabsTrigger } from "../../../../../components/ui/tabs";
 
 async function Page({ params }: { params: { id: string } }) {
   const user = await currentUser();
   if (!user) return null;
 
-  const userInfo = await fetchUserPosts(params.id);
-  console.log("User Info",userInfo)
+  const userInfo = await fetchUser(params.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
+
+  const followers = await fetchUsersByField(params.id, "followers");
+  const following = await fetchUsersByField(params.id, "following");
+
+  const isFollowing = await isUserFollowing(user.id, params.id);
 
   return (
     <section>
@@ -28,44 +33,97 @@ async function Page({ params }: { params: { id: string } }) {
         username={userInfo.username}
         imgUrl={userInfo.image}
         bio={userInfo.bio}
+        isFollowing={isFollowing}
       />
 
-      <div className='mt-9'>
-        <Tabs defaultValue='threads' className='w-full'>
-          <TabsList className='tab'>
+      <div className="mt-9">
+        <Tabs defaultValue="threads" className="w-full">
+          <TabsList className="tab">
             {profileTabs.map((tab) => (
-              <TabsTrigger key={tab.label} value={tab.value} className='tab'>
+              <TabsTrigger key={tab.label} value={tab.value} className="tab">
                 <Image
                   src={tab.icon}
                   alt={tab.label}
                   width={24}
                   height={24}
-                  className='object-contain'
+                  className="object-contain"
                 />
-                <p className='max-sm:hidden'>{tab.label}</p>
-
+                <p className="max-sm:hidden">{tab.label}</p>
                 {tab.label === "Threads" && (
-                  <p className='ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2'>
+                  <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
                     {userInfo?.threads?.length}
+                  </p>
+                )}
+                {tab.label === "Followers" && (
+                  <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
+                    {userInfo.followersCount}
+                  </p>
+                )}
+                {tab.label === "Following" && (
+                  <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
+                    {userInfo.followingCount}
                   </p>
                 )}
               </TabsTrigger>
             ))}
           </TabsList>
-          {profileTabs.map((tab) => (
-            <TabsContent
-              key={`content-${tab.label}`}
-              value={tab.value}
-              className='w-full text-light-1'
-            >
-              {/* @ts-ignore */}
+
+          <TabsContent value="threads" className="w-full text-light-1">
+            {/* @ts-ignore */}{" "}
+            {userInfo.threadsCount === 0 ? (
+              <div className="mt-9 flex flex-col gap-10">
+                <p className="no-result">No threads found</p>
+              </div>
+            ) : (
               <ThreadsTab
                 currentUserId={user.id}
                 accountId={userInfo.id}
-                accountType='User'
+                accountType="User"
               />
-            </TabsContent>
-          ))}
+            )}
+          </TabsContent>
+
+          <TabsContent value="followers" className="w-full text-light-1">
+            <div className="mt-9 flex flex-col gap-10">
+              {userInfo.followersCount === 0 ? (
+                <p className="no-result">No users found</p>
+              ) : (
+                <>
+                  {followers.map((follower: any) => (
+                    <UserCard
+                      key={follower.id}
+                      id={follower.id}
+                      name={follower.name}
+                      username={follower.username}
+                      imgUrl={follower.image}
+                      personType="User"
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="following" className="w-full text-light-1">
+            <div className="mt-9 flex flex-col gap-10">
+              {userInfo.followingCount === 0 ? (
+                <p className="no-result">No users found</p>
+              ) : (
+                <>
+                  {following.map((following: any) => (
+                    <UserCard
+                      key={following.id}
+                      id={following.id}
+                      name={following.name}
+                      username={following.username}
+                      imgUrl={following.image}
+                      personType="User"
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </section>

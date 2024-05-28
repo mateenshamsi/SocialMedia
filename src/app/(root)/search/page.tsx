@@ -4,6 +4,8 @@ import { currentUser } from "@clerk/nextjs/server";
 import UserCard from "../../../../components/cards/UserCard";
 import { fetchUser, fetchUsers } from "../../../../lib/actions/user.actions";
 import { useRouter } from "next/router";
+import Pagination from "../../../../components/shared/Pagination";
+import SearchBar from "../../../../components/shared/SearchBar";
 
 async function Page({
   searchParams,
@@ -24,6 +26,8 @@ async function Page({
   console.log(result)
   return (
     <section>
+      <SearchBar routetype="search"/>
+      <div className="mt-10 flex-col gap-10 "> 
       <h1 className='head-text mb-10'>Search</h1>
 
       
@@ -39,8 +43,8 @@ async function Page({
               />
             ))}
         
-
-      
+        </div>
+            <Pagination path="search" pageNumber={searchParams?.page?+searchParams.page:1} isNext={result.isNext}/>
     </section>
   );
 }
