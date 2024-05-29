@@ -17,14 +17,16 @@ import {
 
 import { Textarea } from "../ui/textarea";
 import { usePathname, useRouter } from "next/navigation";
-import { createThread } from "../../lib/actions/thread.actions";
+import { createThread, editThread } from "../../lib/actions/thread.actions";
 import { useOrganization } from "@clerk/clerk-react";
 
 interface Props {
   userId: string;
+  threadId?:string , 
+  threadText?:string 
 }
 
-function PostThread({ userId }: Props) {
+function PostThread({ userId,threadId,threadText }: Props) {
   const router = useRouter();
   const { organization } = useOrganization();
 
@@ -39,16 +41,14 @@ function PostThread({ userId }: Props) {
 
   const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
     // Check if organization is defined before accessing its properties
-    console.log("ORG ID",organization)
-    if (organization) {
-      await createThread({
+    if (threadId && threadText) {
+      await editThread({
+        threadId,
         text: values.thread,
-        author: userId,
-      
         path: path,
       });
-      router.push("/");
-    }
+   
+    } 
     else
     { 
         await createThread({

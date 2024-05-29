@@ -1,4 +1,15 @@
 import mongoose from 'mongoose' 
+const reactionSchema = new mongoose.Schema({ 
+    user:{ 
+        type:mongoose.Schema.Types.ObjectId , 
+        ref:"User"
+    }, 
+    createdAt:{ 
+        type:Date , 
+        default:Date.now()
+    }
+
+}) 
 const threadSchema = new mongoose.Schema({ 
 
     text:{
@@ -22,15 +33,20 @@ const threadSchema = new mongoose.Schema({
      type:String , 
 
     },
+    reactions:[reactionSchema] ,
+
     children:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Thread'
 
-    }] 
+    }],
 
 
     
     
+})
+threadSchema.virtual("reactionsCount").get(function(){
+    return this.reactions.length 
 })
 const Thread = mongoose.models.Thread||mongoose.model('Thread',threadSchema) 
 

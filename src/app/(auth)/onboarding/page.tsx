@@ -1,27 +1,23 @@
 import { currentUser } from "@clerk/nextjs/server";
 import AccountProfile from "../../../../components/forms/AccountProfile";
+import { fetchUser } from "../../../../lib/actions/user.actions";
+import { redirect } from "next/navigation";
 
 async function Page() {
   const user = await currentUser();
 
   // Define userInfo with default values
-  const userInfo = {
-    _id: "",
-    username: "",
-    name: "",
-    firstName: "",
-    bio: "",
-    image: ""
-  };
-
+  if(!user) return null 
+  const userInfo =await fetchUser(user.id)  
+  if(userInfo?.onboarded) redirect('/') 
   // Construct userData ensuring all fields have default values if they are undefined
   const userData = {
-    id: user?.id || "",
-    objectId: userInfo._id,
-    username: userInfo.username || user?.username || "",
-    name: userInfo.name || user?.firstName || "",
+    id: user?.id ,
+    objectId: userInfo?._id,
+    username: userInfo?.username || user?.username ,
+    name: userInfo?.name || user?.firstName ,
     bio: userInfo.bio || "",
-    image: userInfo.image || user?.imageUrl || ""
+    image: userInfo?.image || user?.imageUrl || ""
   };
 
   return (

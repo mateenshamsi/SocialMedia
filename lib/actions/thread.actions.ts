@@ -4,66 +4,152 @@ import { revalidatePath } from "next/cache";
 
 import { connectDB } from "../mongoose";
 import Thread from "../models/thread.models";
-
 import User from "../models/user.models";
+import { fetchUser,fetchUsers} from "./user.actions";
 
-export async function fetchPosts(pageNumber = 1, pageSize = 20) {
-  connectDB();
 
-  // Calculate the number of posts to skip based on the page number and page size.
-  const skipAmount = (pageNumber - 1) * pageSize;
 
-  // Create a query to fetch the posts that have no parent (top-level threads) (a thread that is not a comment/reply).
-  const postsQuery = Thread.find({ parentId: { $in: [null, undefined] } })
-    .sort({ createdAt: "desc" })
-    .skip(skipAmount)
-    .limit(pageSize)
-    .populate({
-      path: "author",
-      model: User,
-    })
-    .populate({
-      path: "children", // Populate the children field
-      populate: {
-        path: "author", // Populate the author field within children
-        model: User,
-        select: "_id name parentId image", // Select only _id and username fields of the author
-      },
+export async function isThreadReactedByUser({
+  threadId,
+  userId,
+}: {
+  threadId: string;
+  userId: string;
+}) {
+  try {
+    connectDB();
+
+    const thread = await Thread.findOne({ _id: threadId });
+
+    const isReacted: any = thread.reactions.some((reaction: any) =>
+      reaction.user.equals(userId)
+    );
+
+    return !!isReacted;
+  } catch (error: any) {
+    throw new Error(
+      `Failed to check if thread is reacted by user: ${error.message}`
+    );
+  }
+}
+export async function getReactedUsersByThread(threadId: string) {
+  try {
+    connectDB();
+
+    const thread = await Thread.findOne({ _id: threadId });
+
+    const reactedUsersIds = thread.reactions.map(
+      (reaction: any) => reaction.user
+    );
+
+    const reactedUsers = await fetchUsers({
+     
+      userId: reactedUsersIds,
     });
 
-  // Count the total number of top-level posts (threads) i.e., threads that are not comments.
-  const totalPostsCount = await Thread.countDocuments({
-    parentId: { $in: [null, undefined] },
-  }); // Get the total count of posts
+    return reactedUsers;
+  } catch (error: any) {
+    throw new Error(`Failed to get reacted users: ${error.message}`);
+  }
+}
 
-  const posts = await postsQuery.exec();
+export async function fetchPosts(pageNumber = 1, pageSize = 20) {
+  try {
+    connectDB();
 
-  const isNext = totalPostsCount > skipAmount + posts.length;
+    // Calculate the number of posts to skip based on the page number and page size.
+    const skipAmount = (pageNumber - 1) * pageSize;
 
-  return { posts, isNext };
+    // Create a query to fetch the posts that have no parent (top-level threads) (a thread that is not a comment/reply).
+    const postsQuery = Thread.find({ parentId: { $in: [null, undefined] } })
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({
+        path: "author",
+        model: User,
+      })
+     
+      .populate({
+        path: "children", // Populate the children field
+        populate: {
+          path: "author", // Populate the author field within children
+          model: User,
+          select: "_id name parentId image", // Select only _id and username fields of the author
+        },
+      });
+
+    // Count the total number of top-level posts (threads) i.e., threads that are not comments.
+    const totalPostsCount = await Thread.countDocuments({
+      parentId: { $in: [null, undefined] },
+    }); // Get the total count of posts
+
+    const posts = await postsQuery.exec();
+
+    const isNext = totalPostsCount > skipAmount + posts.length;
+
+    return { posts, isNext };
+  } catch (error: any) {
+    throw new Error(`Error fetching threads: ${error.message}`);
+  }
 }
 
 interface Params {
-  text: string,
-  author:  string | null,
-  path: string,
+  text: string;
+  author: string;
+  communityId: string | null;
+  path: string;
 }
 
-export async function createThread({ text, author,  path }: Params
-) {
+export async function editThread({
+  threadId,
+  text,
+  path,
+}: {
+  threadId: string;
+  text: string;
+  path: string;
+}) {
   try {
     connectDB();
+
+    const thread = await Thread.findById(threadId);
+
+    if (!thread) {
+      throw new Error("Thread not found");
+    }
+
+    thread.text = text;
+
+    await thread.save();
+
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to edit thread: ${error.message}`);
+  }
+}
+export async function createThread({
+  text,
+  author,
+  communityId,
+  path,
+}: Params) {
+  try {
+    connectDB();
+
     
+
     const createdThread = await Thread.create({
       text,
-      author // if provided, or leave it null for personal account
-    });
+      author,
+      });
 
     // Update User model
     await User.findByIdAndUpdate(author, {
       $push: { threads: createdThread._id },
     });
 
+   
 
     revalidatePath(path);
   } catch (error: any) {
@@ -88,7 +174,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
     connectDB();
 
     // Find the thread to be deleted (the main thread)
-    const mainThread = await Thread.findById(id).populate("author") 
+    const mainThread = await Thread.findById(id).populate("author");
 
     if (!mainThread) {
       throw new Error("Thread not found");
@@ -103,7 +189,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       ...descendantThreads.map((thread) => thread._id),
     ];
 
-    // Extract the authors to update Uodels respectively
+    // Extract the authorIds and communityIds to update User and Community models respectively
     const uniqueAuthorIds = new Set(
       [
         ...descendantThreads.map((thread) => thread.author?._id?.toString()), // Use optional chaining to handle possible undefined values
@@ -122,8 +208,8 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       { $pull: { threads: { $in: descendantThreadIds } } }
     );
 
-    //odel
- 
+    
+
     revalidatePath(path);
   } catch (error: any) {
     throw new Error(`Failed to delete thread: ${error.message}`);
@@ -139,7 +225,8 @@ export async function fetchThreadById(threadId: string) {
         path: "author",
         model: User,
         select: "_id id name image",
-      })  .populate({
+      }) // Populate the author field with _id and username
+     .populate({
         path: "children", // Populate the children field
         populate: [
           {
@@ -167,12 +254,71 @@ export async function fetchThreadById(threadId: string) {
   }
 }
 
-export async function addCommentToThread(
-  threadId: string,
-  commentText: string,
-  userId: string,
-  path: string
-) {
+export async function addReactToThread({
+  threadId,
+  userId,
+  path,
+}: {
+  threadId: string;
+  userId: string;
+  path: string;
+}) {
+  try {
+    connectDB();
+
+    const thread = await Thread.findById(threadId);
+    const user = await User.findOne({ id: userId });
+
+    if (!thread) {
+      throw new Error("Thread not found");
+    }
+
+    const isAlreadyReacted = await isThreadReactedByUser({
+      threadId: thread._id,
+      userId: user._id,
+    });
+
+    if (isAlreadyReacted) {
+      thread.reactions.pull({
+        user: user._id,
+      });
+    } else {
+      thread.reactions.push({
+        user: user._id,
+      });
+    }
+
+    await thread.save();
+
+    if (isAlreadyReacted) {
+      user.reactions.pull({
+        thread: thread._id,
+      });
+    } else {
+      user.reactions.push({
+        thread: thread._id,
+      });
+    }
+
+    await user.save();
+
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to add reaction to thread: ${error.message}`);
+  }
+}
+
+export async function addCommentToThread({
+  threadId,
+  commentText,
+  userId,
+  path,
+}: {
+  threadId: string;
+  commentText: string;
+  userId: string;
+  path: string;
+}) {
   connectDB();
 
   try {
@@ -203,5 +349,80 @@ export async function addCommentToThread(
   } catch (err) {
     console.error("Error while adding comment:", err);
     throw new Error("Unable to add comment");
+  }
+}
+
+export async function fetchPostReactions({ threadId }: { threadId: string }) {
+  try {
+    connectDB();
+
+    const thread = await Thread.findOne({ id: threadId });
+
+    if (!thread) {
+      throw new Error("Thread not found");
+    }
+
+    const reactionsUsersIds = thread.reactions.map(
+      (reaction: any) => reaction.user
+    );
+
+    const reactions = await User.find({
+      _id: { $in: reactionsUsersIds },
+    }).select("_id id name image username");
+
+    return reactions;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch post reactions: ${error.message}`);
+  }
+}
+
+export async function getReactionsData({
+  userId,
+  posts,
+  parentId = "",
+}: {
+  userId: string;
+  posts: any[];
+  parentId?: string;
+}) {
+  try {
+    connectDB();
+
+    const [parentReactions, parentReactionState, childrenData] =
+      await Promise.all([
+        (parentId && getReactedUsersByThread(parentId)) || [],
+        (parentId &&
+          isThreadReactedByUser({
+            threadId: parentId,
+            userId,
+          })) ||
+          false,
+        Promise.all(
+          posts.map(async (post) => {
+            const reactedUsers = await getReactedUsersByThread(post._id);
+            const reactedByUser = await isThreadReactedByUser({
+              threadId: post._id,
+              userId,
+            });
+            return { reactedUsers, reactedByUser };
+          })
+        ),
+      ]);
+
+    const childrenReactions = childrenData.map(
+      (data: any) => data.reactedUsers
+    );
+    const childrenReactionState = childrenData.map(
+      (data: any) => data.reactedByUser
+    );
+
+    return {
+      parentReactions,
+      parentReactionState,
+      childrenReactions,
+      childrenReactionState,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to get reactions data: ${error.message}`);
   }
 }

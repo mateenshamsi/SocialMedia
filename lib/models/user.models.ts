@@ -8,6 +8,16 @@ const followerSchema = new mongoose.Schema({
         type:Date , 
         default:Date.now 
     }
+})
+const reactionSchema = new mongoose.Schema({
+    thread:{ 
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Thread"
+    } , 
+    createdAt: {
+        type: Date,
+        default: Date.now,
+      },
 }) 
 const userSchema = new mongoose.Schema({ 
     id:{
@@ -42,9 +52,9 @@ const userSchema = new mongoose.Schema({
     },
    
     followers :  [followerSchema] , 
-    following:[followerSchema]  
+    following:[followerSchema] ,  
 
-    
+    reactions:[reactionSchema] 
     
     
     
@@ -59,6 +69,9 @@ userSchema.virtual("followersCount").get(function () {
   userSchema.virtual("followingCount").get(function () {
     return this.following.length;
   });
+  userSchema.virtual("reactionsCount").get(function(){ 
+    return this.reactions.length 
+  })
 const User = mongoose.models.User||mongoose.model('User',userSchema) 
 
 export default User 
