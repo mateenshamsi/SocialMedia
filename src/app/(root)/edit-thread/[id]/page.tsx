@@ -1,4 +1,3 @@
-
 import { redirect } from "next/navigation";
 import React from "react";
 import PostThread from "../../../../../components/forms/PostThread";
