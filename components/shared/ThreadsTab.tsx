@@ -1,41 +1,39 @@
-import { currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import ThreadCard from '../cards/ThreadCard';
-import { fetchUserPosts } from '../../lib/actions/user.actions';
+import { redirect } from "next/navigation";
 
-interface Author {
-  name: string;
-  image: string;
-  id: string;
-}
+// import { fetchUser, fetchUserPosts } from "@/lib/actions/user.actions";
 
-interface Community {
-  id: string;
-  name: string;
-  image: string;
-}
+import ThreadCard from "../cards/ThreadCard";
 
-interface Child {
-  author: {
-    image: string;
-  };
-}
+import { currentUser } from "@clerk/nextjs/server";
+import { getReactionsData } from "../../lib/actions/thread.actions";
+import { fetchUser, fetchUserPosts } from "../../lib/actions/user.actions";
 
-interface Thread {
-  _id: string;
-  text: string;
-  parentId: string | null;
-  author: Author;
-  community: Community | null;
-  createdAt: string;
-  children: Child[];
-}
 
 interface Result {
   name: string;
   image: string;
   id: string;
-  threads: Thread[];
+  threads: {
+    _id: string;
+    text: string;
+    parentId: string | null;
+    author: {
+      name: string;
+      image: string;
+      id: string;
+    };
+    community: {
+      id: string;
+      name: string;
+      image: string;
+    } | null;
+    createdAt: string;
+    children: {
+      author: {
+        image: string;
+      };
+    }[];
+  }[];
 }
 
 interface Props {
@@ -44,26 +42,33 @@ interface Props {
   accountType: string;
 }
 
-const ThreadsTab = async ({ currentUserId, accountId, accountType }: Props) => {
-  let result: Result | null = null;
+async function ThreadsTab({ currentUserId, accountId, accountType }: Props) {
+  let result: Result;
 
-  try {
+ 
     result = await fetchUserPosts(accountId);
-    if (!result) {
-      console.log('No result found, redirecting to home page.');
-      redirect('/');
-      return null; // Ensure the function exits after redirecting
-    }
-    console.log(result);
-  } catch (error) {
-    console.error('Error fetching user posts:', error);
-    redirect('/error'); // Customize this based on your application's routing
-    return null; // Ensure the function exits after redirecting
+  
+
+  if (!result) {
+    redirect("/");
   }
+
+  const user = await currentUser();
+  if (!user) return null;
+
+  const userInfo = await fetchUser(user.id);
+  if (!userInfo?.onboarded) redirect("/onboarding");
+
+  const reactionsData = await getReactionsData({
+    userId: userInfo._id,
+    posts: result.threads,
+  });
+
+  const { childrenReactions, childrenReactionState } = reactionsData;
 
   return (
     <section className="mt-9 flex flex-col gap-10">
-      {result.threads.map((thread: Thread) => (
+      {result.threads.map((thread, idx) => (
         <ThreadCard
           key={thread._id}
           id={thread._id}
@@ -71,7 +76,7 @@ const ThreadsTab = async ({ currentUserId, accountId, accountType }: Props) => {
           parentId={thread.parentId}
           content={thread.text}
           author={
-            accountType === 'User'
+            accountType === "User"
               ? { name: result.name, image: result.image, id: result.id }
               : {
                   name: thread.author.name,
@@ -79,13 +84,19 @@ const ThreadsTab = async ({ currentUserId, accountId, accountType }: Props) => {
                   id: thread.author.id,
                 }
           }
-          community={thread.community}
+          community={
+            accountType === "Community"
+              ? { name: result.name, id: result.id, image: result.image }
+              : thread.community
+          }
           createdAt={thread.createdAt}
           comments={thread.children}
+          reactions={childrenReactions[idx].users}
+          reactState={childrenReactionState[idx]}
         />
       ))}
     </section>
   );
-};
+}
 
 export default ThreadsTab;
