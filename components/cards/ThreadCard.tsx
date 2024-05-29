@@ -27,6 +27,13 @@ interface Props {
       image: string;
     };
   }[];
+  reactions: {
+    image: string;
+    _id: string;
+    id: string;
+    name: string;
+    username: string;
+  }[];
   isComment?: boolean;
   reactState?: boolean;
 }
@@ -40,6 +47,7 @@ function ThreadCard({
   community,
   createdAt,
   comments,
+  reactions,
   isComment,
   reactState,
 }: Props) {
@@ -60,15 +68,19 @@ function ThreadCard({
                 className="cursor-pointer rounded-full"
               />
             </Link>
+
             <div className="thread-card_bar" />
           </div>
+
           <div className="flex w-full flex-col">
             <Link href={`/profile/${author.id}`} className="w-fit">
               <h4 className="cursor-pointer text-base-semibold text-light-1">
                 {author.name}
               </h4>
             </Link>
+
             <p className="mt-2 text-small-regular text-light-2">{content}</p>
+
             <div className={`${isComment && "mb-10"} mt-5 flex flex-col gap-3`}>
               <div className="flex gap-3.5">
                 <ReactThread
@@ -102,6 +114,7 @@ function ThreadCard({
                   className="cursor-pointer object-contain"
                 />
               </div>
+
               <div className="flex flex-row gap-2">
                 {isComment && (
                   <>
@@ -113,12 +126,26 @@ function ThreadCard({
                         </p>
                       </Link>
                     )}
+
+                    {comments.length > 0 && reactions.length > 0 && (
+                      <p className="mt-1 text-subtle-medium text-gray-1">•</p>
+                    )}
+
+                    {reactions.length > 0 && (
+                      <Link href={`/thread/reactions/${id}`}>
+                        <p className="mt-1 text-subtle-medium text-gray-1">
+                          {reactions.length}{" "}
+                          {reactions.length > 1 ? "likes" : "like"}
+                        </p>
+                      </Link>
+                    )}
                   </>
                 )}
               </div>
             </div>
           </div>
         </div>
+
         <div className="flex flex-row gap-2">
           <DeleteThread
             threadId={JSON.stringify(id)}
@@ -128,15 +155,16 @@ function ThreadCard({
             isComment={isComment}
           />
           <EditThread
-            threadId={id}
+            threadId={JSON.stringify(id)}
             currentUserId={currentUserId}
             authorId={author.id}
           />
         </div>
       </div>
+
       <div className="flex flex-row gap-2">
         {!isComment && (
-          <div>
+          <>
             {comments.length > 0 && (
               <div className="ml-1 mt-3 flex items-center gap-2">
                 {comments.slice(0, 2).map((comment, index) => (
@@ -151,6 +179,7 @@ function ThreadCard({
                     } rounded-full object-cover`}
                   />
                 ))}
+
                 <Link href={`/thread/${id}`}>
                   <p className="mt-1 text-subtle-medium text-gray-1">
                     {comments.length}{" "}
@@ -159,27 +188,40 @@ function ThreadCard({
                 </Link>
               </div>
             )}
-          </div>
-        )}
-        {!isComment && community && (
-          <Link
-            href={`/communities/${community.id}`}
-            className="mt-5 flex items-center"
-          >
-            <p className="text-subtle-medium text-gray-1">
-              {formatDateString(createdAt)}
-              {community && ` - ${community.name} Community`}
-            </p>
-            <Image
-              src={community.image}
-              alt={community.name}
-              width={14}
-              height={14}
-              className="ml-1 rounded-full object-cover"
-            />
-          </Link>
+
+            {/* {comments.length > 0 && reactions.length > 0 && (
+              <div className="ml-1 mt-3 flex items-center">
+                <p className="mt-1 text-subtle-medium text-gray-1">•</p>
+              </div>
+            )} */}
+
+            {reactions?.length > 0 && (
+              <div className="ml-1 mt-3 flex items-center gap-2">
+                {reactions.slice(0, 2).map((reaction, index) => (
+                  <Image
+                    key={index}
+                    src={reaction.image}
+                    alt={`user_${index}`}
+                    width={24}
+                    height={24}
+                    className={`${
+                      index !== 0 && "-ml-5"
+                    } rounded-full object-cover`}
+                  />
+                ))}
+
+                <Link href={`/thread/reactions/${id}`}>
+                  <p className="mt-1 text-subtle-medium text-gray-1">
+                    {reactions.length} {reactions.length > 1 ? "likes" : "like"}
+                  </p>
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+     
     </article>
   );
 }

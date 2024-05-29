@@ -1,27 +1,45 @@
-"use client"
-import { usePathname } from 'next/navigation';
-import * as React from 'react';
-import { addReactToThread } from '../../lib/actions/thread.actions';
-import Image from 'next/image';
-interface Props {
-    threadId: string;
-    currentUserId: string;
-    interactState?: boolean;
-    isComment?: boolean;
-    parentId?: string | null;
-  }
-function ReactThread({threadId,currentUserId,interactState,isComment,parentId}:Props){
-    const pathname = usePathname()
-    const handleClick = async()=>{ 
-        await addReactToThread({
-            threadId, 
-            userId:currentUserId, 
-            path:pathname 
-        })
-    }
-    return( 
-        <Image src={`/assets/heart-${interactState?"filled":"gray"}.svg`} alt="Heart" width={24} height={24} onClick={handleClick}/> 
+"use client";
 
-    )
+import Image from "next/image";
+import React from "react";
+import { usePathname } from "next/navigation";
+import { addReactToThread } from "../../lib/actions/thread.actions";
+
+interface Props {
+  threadId: string;
+  currentUserId: string;
+  interactState?: boolean;
+  isComment?: boolean;
+  parentId?: string | null;
 }
-export default ReactThread 
+
+const ReactThread = ({
+  threadId,
+  currentUserId,
+  interactState = false,
+  isComment = false,
+  parentId = null,
+}: Props) => {
+  const pathname = usePathname();
+
+  const handleClick = async () => {
+    await addReactToThread({
+      threadId,
+      userId: currentUserId,
+      path: pathname,
+    });
+  };
+
+  return (
+    <Image
+      src={`/assets/heart-${interactState ? "filled" : "gray"}.svg`}
+      alt="heart"
+      width={24}
+      height={24}
+      className="cursor-pointer object-contain"
+      onClick={handleClick}
+    />
+  );
+};
+
+export default ReactThread;

@@ -3,11 +3,65 @@
 import { revalidatePath } from "next/cache";
 
 import { connectDB } from "../mongoose";
+
+import { fetchUsers, getUserFollowersIds } from "./user.actions";
+import  User  from "../models/user.models";
 import Thread from "../models/thread.models";
-import User from "../models/user.models";
-import { fetchUser,fetchUsers} from "./user.actions";
 
+export async function fetchExplore({
+  userId,
+  pageNumber = 1,
+  pageSize = 20,
+}: {
+  userId: string;
+  pageNumber?: number;
+  pageSize?: number;
+}) {
+  try {
+ 
 
+    // Calculate the number of posts to skip based on the page number and page size.
+    const skipAmount = (pageNumber - 1) * pageSize;
+
+    const followedUsersIds = await getUserFollowersIds(userId, "following");
+
+    // Create a query to fetch the posts that have no parent (top-level threads) (a thread that is not a comment/reply).
+    const postsQuery = Thread.find({
+      author: { $in: followedUsersIds },
+      parentId: { $in: [null, undefined] },
+    })
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(pageSize)
+      .populate({
+        path: "author",
+        model: User,
+      })
+     
+      .populate({
+        path: "children", // Populate the children field
+        populate: {
+          path: "author", // Populate the author field within children
+          model: User,
+          select: "_id name parentId image", // Select only _id and username fields of the author
+        },
+      });
+
+    // Count the total number of top-level posts (threads) i.e., threads that are not comments.
+    const totalPostsCount = await Thread.countDocuments({
+      author: { $in: followedUsersIds },
+      parentId: { $in: [null, undefined] },
+    }); // Get the total count of posts
+
+    const posts = await postsQuery.exec();
+
+    const isNext = totalPostsCount > skipAmount + posts.length;
+
+    return { posts, isNext };
+  } catch (error: any) {
+    throw new Error(`Error fetching threads: ${error.message}`);
+  }
+}
 
 export async function isThreadReactedByUser({
   threadId,
@@ -17,7 +71,7 @@ export async function isThreadReactedByUser({
   userId: string;
 }) {
   try {
-    connectDB();
+  
 
     const thread = await Thread.findOne({ _id: threadId });
 
@@ -34,7 +88,7 @@ export async function isThreadReactedByUser({
 }
 export async function getReactedUsersByThread(threadId: string) {
   try {
-    connectDB();
+ 
 
     const thread = await Thread.findOne({ _id: threadId });
 
@@ -43,8 +97,8 @@ export async function getReactedUsersByThread(threadId: string) {
     );
 
     const reactedUsers = await fetchUsers({
-     
-      userId: reactedUsersIds,
+      userId: "INVALID_USER_ID",
+      userIds: reactedUsersIds,
     });
 
     return reactedUsers;
@@ -55,7 +109,7 @@ export async function getReactedUsersByThread(threadId: string) {
 
 export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   try {
-    connectDB();
+ 
 
     // Calculate the number of posts to skip based on the page number and page size.
     const skipAmount = (pageNumber - 1) * pageSize;
@@ -69,7 +123,7 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
         path: "author",
         model: User,
       })
-     
+    
       .populate({
         path: "children", // Populate the children field
         populate: {
@@ -111,7 +165,7 @@ export async function editThread({
   path: string;
 }) {
   try {
-    connectDB();
+
 
     const thread = await Thread.findById(threadId);
 
@@ -131,20 +185,17 @@ export async function editThread({
 export async function createThread({
   text,
   author,
-  communityId,
+ 
   path,
 }: Params) {
   try {
-    connectDB();
-
-    
-
+  
     const createdThread = await Thread.create({
       text,
       author,
-      });
+     });
 
-    // Update User model
+   
     await User.findByIdAndUpdate(author, {
       $push: { threads: createdThread._id },
     });
@@ -171,10 +222,10 @@ async function fetchAllChildThreads(threadId: string): Promise<any[]> {
 
 export async function deleteThread(id: string, path: string): Promise<void> {
   try {
-    connectDB();
+
 
     // Find the thread to be deleted (the main thread)
-    const mainThread = await Thread.findById(id).populate("author");
+    const mainThread = await Thread.findById(id).populate("author community");
 
     if (!mainThread) {
       throw new Error("Thread not found");
@@ -197,7 +248,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
       ].filter((id) => id !== undefined)
     );
 
-  
+   
 
     // Recursively delete child threads and their descendants
     await Thread.deleteMany({ _id: { $in: descendantThreadIds } });
@@ -217,7 +268,7 @@ export async function deleteThread(id: string, path: string): Promise<void> {
 }
 
 export async function fetchThreadById(threadId: string) {
-  connectDB();
+
 
   try {
     const thread = await Thread.findById(threadId)
@@ -226,7 +277,7 @@ export async function fetchThreadById(threadId: string) {
         model: User,
         select: "_id id name image",
       }) // Populate the author field with _id and username
-     .populate({
+          .populate({
         path: "children", // Populate the children field
         populate: [
           {
@@ -264,7 +315,7 @@ export async function addReactToThread({
   path: string;
 }) {
   try {
-    connectDB();
+  
 
     const thread = await Thread.findById(threadId);
     const user = await User.findOne({ id: userId });
@@ -319,7 +370,6 @@ export async function addCommentToThread({
   userId: string;
   path: string;
 }) {
-  connectDB();
 
   try {
     // Find the original thread by its ID
@@ -354,7 +404,7 @@ export async function addCommentToThread({
 
 export async function fetchPostReactions({ threadId }: { threadId: string }) {
   try {
-    connectDB();
+  
 
     const thread = await Thread.findOne({ id: threadId });
 
@@ -386,7 +436,7 @@ export async function getReactionsData({
   parentId?: string;
 }) {
   try {
-    connectDB();
+  
 
     const [parentReactions, parentReactionState, childrenData] =
       await Promise.all([
