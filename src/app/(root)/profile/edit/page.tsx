@@ -3,28 +3,36 @@ import { redirect } from "next/navigation";
 import { fetchUser } from "../../../../../lib/actions/user.actions";
 import { fetchThreadById } from "../../../../../lib/actions/thread.actions";
 import PostThread from "../../../../../components/forms/PostThread";
+import { object } from "zod";
+import AccountProfile from "../../../../../components/forms/AccountProfile";
 
 
-const Page = async ({ params }: { params: { id: string } }) => {
-  if (!params.id) return null;
+const Page = async () => {
+  
 
   const user = await currentUser();
   if (!user) return null;
 
   const userInfo = await fetchUser(user.id);
   if (!userInfo?.onboarded) redirect("/onboarding");
+  const userData ={ 
+    id:user.id ,
+    username:userInfo?.username,
+    objectId:userInfo?._id , 
+    bio:userInfo?.bio,
+    name:userInfo?.name, 
+    image:userInfo?.image 
 
-  const thread = await fetchThreadById(params.id);
 
+  }
+  
   return (
     <>
-      <h1 className="head-text">Edit Thread</h1>
+      <h1 className="head-text">Edit User Details</h1>
 
-      <PostThread
-        userId={userInfo._id}
-        threadId={thread.id}
-        threadText={thread.text}
-      />
+      <AccountProfile
+        user={userData} btnTitle="continue"
+       />
     </>
   );
 };
