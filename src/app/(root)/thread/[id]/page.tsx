@@ -28,6 +28,7 @@ async function Page({ params }: { params: { id: string } }) {
     childrenReactions,
     childrenReactionState,
   } = reactionsData;
+
   return (
     <section className="relative">
       <div>
@@ -49,7 +50,7 @@ async function Page({ params }: { params: { id: string } }) {
         <Comment
           threadId={params.id}
           currentUserImg={user.imageUrl}
-          currentUserId={JSON.stringify(userInfo._id)}
+          currentUserId={userInfo._id} 
         />
       </div>
 
