@@ -22,7 +22,7 @@ function UserCard({
   const router = useRouter(); // Mount the router
 
   return (
-    <article className="flex flex-col justify-between gap-4 max-xs:rounded-xl max-xs:bg-dark-3 max-xs:p-4 xs:flex-row xs:items-center">
+    <article className="flex mt-10 flex-col justify-between gap-4 max-xs:rounded-xl max-xs:bg-dark-3 max-xs:p-4 xs:flex-row xs:items-center">
       <div className="flex flex-1 items-start justify-start gap-3 xs:items-center">
         <Image
           src={imgUrl}

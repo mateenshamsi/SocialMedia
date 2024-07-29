@@ -6,11 +6,11 @@ import { redirect } from "next/navigation";
 async function Page() {
   const user = await currentUser();
 
-  // Define userInfo with default values
+ 
   if(!user) return null 
   const userInfo =await fetchUser(user.id)  
   if(userInfo?.onboarded) redirect('/') 
-  // Construct userData ensuring all fields have default values if they are undefined
+ 
   const userData = {
     id: user?.id ,
     objectId: userInfo?._id,

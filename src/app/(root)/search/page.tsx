@@ -28,9 +28,9 @@ async function Page({
     <section>
       <SearchBar routetype="search"/>
       <div className="mt-10 flex-col gap-10 "> 
-      <h1 className='head-text mb-10'>Search</h1>
+      <h1 className='head-text  mb-10'>Search</h1>
 
-      
+          
        
             {result.users.map((person) => (
               <UserCard

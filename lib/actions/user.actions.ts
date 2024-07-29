@@ -135,8 +135,7 @@ export async function fetchUserPosts(userId: string) {
   try {
     connectDB();
 
-    // Find all threads authored by the user with the given userId
-    const threads = await User.findOne({ id: userId }).populate({
+       const threads = await User.findOne({ id: userId }).populate({
       path: "threads",
       model: Thread,
       populate: [
@@ -147,7 +146,7 @@ export async function fetchUserPosts(userId: string) {
           populate: {
             path: "author",
             model: User,
-            select: "name image id", // Select the "name" and "_id" fields from the "User" model
+            select: "name image id", 
           },
         },
       ],
@@ -188,8 +187,6 @@ export async function fetchUsersByField(userId: string, field: string) {
     throw new Error(`Failed to fetch users: ${error.message}`);
   }
 }
-
-// Almost similar to Thead (search + pagination) and Community (search + pagination)
 export async function fetchUsers({
   userId,
   userIds,
@@ -207,45 +204,33 @@ export async function fetchUsers({
 }) {
   try {
     connectDB();
+   const skipAmount = (pageNumber - 1) * pageSize;
 
-    // Calculate the number of users to skip based on the page number and page size.
-    const skipAmount = (pageNumber - 1) * pageSize;
-
-    // Create a case-insensitive regular expression for the provided search string.
     const regex = new RegExp(searchTerm, "i");
 
-    // Create an initial query object to filter users.
     const query: FilterQuery<typeof User> = {
-      id: { $ne: userId }, // Exclude the current user from the results.
+      id: { $ne: userId }, 
     };
 
     if (userIds) {
       query._id = { $in: userIds };
     }
-
-    // If the search string is not empty, add the $or operator to match either username or name fields.
-    if (searchTerm.trim() !== "") {
+  if (searchTerm.trim() !== "") {
       query.$or = [
         { username: { $regex: regex } },
         { name: { $regex: regex } },
       ];
     }
-
-    // Define the sort options for the fetched users based on createdAt field and provided sort order.
     const sortOptions = { createdAt: sortBy };
 
     const usersQuery = User.find(query)
       .sort(sortOptions)
       .skip(skipAmount)
       .limit(pageSize);
-
-    // Count the total number of users that match the search criteria (without pagination).
-    const totalUsersCount = await User.countDocuments(query);
+   const totalUsersCount = await User.countDocuments(query);
 
     const users = await usersQuery.exec();
-
-    // Check if there are more users beyond the current page.
-    const isNext = totalUsersCount > skipAmount + users.length;
+  const isNext = totalUsersCount > skipAmount + users.length;
 
     return { users, isNext };
   } catch (error) {
