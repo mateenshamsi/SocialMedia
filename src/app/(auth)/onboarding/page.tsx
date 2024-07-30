@@ -2,9 +2,10 @@ import { currentUser } from "@clerk/nextjs/server";
 import AccountProfile from "../../../../components/forms/AccountProfile";
 import { fetchUser } from "../../../../lib/actions/user.actions";
 import { redirect } from "next/navigation";
+import { useUser } from '@clerk/nextjs';
 
 async function Page() {
-  const user = await currentUser();
+  const {user} = useUser();
 
  
   if(!user) return null 
