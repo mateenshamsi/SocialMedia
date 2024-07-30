@@ -56,7 +56,7 @@ async function ThreadsTab({ currentUserId, accountId, accountType }: Props) {
   if (!user) return null;
 
   const userInfo = await fetchUser(user.id);
-  // if (!userInfo?.onboarded) redirect("/onboarding");
+  if (!userInfo?.onboarded) redirect("/onboarding");
 
   const reactionsData = await getReactionsData({
     userId: userInfo._id,
